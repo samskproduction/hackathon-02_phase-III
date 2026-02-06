@@ -1,0 +1,243 @@
+openapi: 3.0.0
+info:
+  title: AI Todo Chatbot API
+  version: 1.0.0
+  description: API for Cohere-powered AI chatbot integration with Todo application
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Process natural language chat message and return response
+      description: Handles user chat messages, processes with Cohere AI, executes tools as needed, and returns response
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the authenticated user
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: The user's chat message
+                  example: "Add task: Buy groceries"
+                conversation_id:
+                  type: string
+                  description: Optional existing conversation ID (creates new if not provided)
+                  example: "conv_abc123"
+              required:
+                - message
+      responses:
+        '200':
+          description: Successful response from AI chatbot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation_id:
+                    type: string
+                    description: The conversation ID (newly created or existing)
+                    example: "conv_abc123"
+                  response:
+                    type: string
+                    description: The AI-generated response
+                    example: "I've added the task 'Buy groceries' for you!"
+                  tool_calls:
+                    type: array
+                    description: List of tools called during processing
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: Name of the tool called
+                          example: "add_task"
+                        arguments:
+                          type: object
+                          description: Arguments passed to the tool
+                          example: {"title": "Buy groceries", "description": "Need to buy milk, bread, eggs"}
+                  user_data:
+                    type: object
+                    description: Optional user data returned (for profile queries)
+                    properties:
+                      id:
+                        type: string
+                        description: User ID
+                      email:
+                        type: string
+                        description: User email
+                      name:
+                        type: string
+                        description: User name
+                      created_at:
+                        type: string
+                        format: date-time
+                        description: User account creation date
+                required:
+                  - conversation_id
+                  - response
+                  - tool_calls
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: "Message field is required"
+        '401':
+          description: Unauthorized - invalid or missing JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: "Invalid or missing JWT token"
+        '403':
+          description: Forbidden - user attempting to access another user's resources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: "Access denied: Cannot access another user's conversations"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: "Internal server error occurred"
+
+  /api/conversations:
+    get:
+      summary: Get list of user's conversations
+      description: Retrieve paginated list of conversations for the authenticated user
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          description: The ID of the authenticated user
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Number of conversations to return (default 10)
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Offset for pagination (default 0)
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of user's conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+                      required:
+                        - id
+                        - created_at
+                        - updated_at
+                  total:
+                    type: integer
+                    description: Total number of conversations for pagination
+        '401':
+          description: Unauthorized - invalid or missing JWT
+
+  /api/conversations/{conversation_id}:
+    get:
+      summary: Get conversation messages
+      description: Retrieve all messages for a specific conversation
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          description: The ID of the conversation
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of messages in the conversation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        role:
+                          type: string
+                          enum: [user, assistant]
+                        content:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                        tool_calls:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              arguments:
+                                type: object
+                      required:
+                        - id
+                        - role
+                        - content
+                        - timestamp
+        '401':
+          description: Unauthorized - invalid or missing JWT
+        '403':
+          description: Forbidden - user attempting to access another user's conversation
+        '404':
+          description: Conversation not found
