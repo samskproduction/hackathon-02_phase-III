@@ -3,7 +3,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const ChatbotIcon = ({ onOpen }) => {
+interface ChatbotIconProps {
+  onOpen: () => void;
+}
+
+const ChatbotIcon = ({ onOpen }: ChatbotIconProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 

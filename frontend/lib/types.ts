@@ -53,6 +53,19 @@ export interface ApiResponse<T> {
   };
 }
 
+// Backend Task Response (snake_case from API)
+export interface BackendTask {
+  id: number;
+  user_id: string;
+  title: string;
+  description?: string;
+  is_completed: boolean;
+  created_at: string;
+  updated_at: string;
+  due_date?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+}
+
 // Task API Response Types
 export interface CreateTaskRequest {
   title: string;

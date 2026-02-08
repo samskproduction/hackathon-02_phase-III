@@ -4,15 +4,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/api';
 
-const ChatWindow = ({ isOpen, onClose }) => {
+interface ChatWindowProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', content: 'Hello! I\'m your AI assistant. How can I help you manage your tasks today?' }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(undefined);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Get user ID from local storage (stored during authentication)
   const getUserId = () => {
@@ -117,7 +122,7 @@ const ChatWindow = ({ isOpen, onClose }) => {
   };
 
   // Handle key press (Enter to send)
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -197,7 +202,7 @@ const ChatWindow = ({ isOpen, onClose }) => {
               onKeyDown={handleKeyPress}
               placeholder="Type your message..."
               className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              rows="1"
+              rows={1}
               style={{ minHeight: '40px', maxHeight: '100px' }}
             />
             <button

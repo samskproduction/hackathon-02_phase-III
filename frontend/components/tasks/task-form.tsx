@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Task } from '@/lib/types';
+import { Task, CreateTaskRequest, UpdateTaskRequest } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 interface TaskFormProps {
   task?: Task | null;
-  onSubmit: (data: Partial<Task>) => void;
+  onSubmit: (data: CreateTaskRequest | UpdateTaskRequest) => void;
   onCancel: () => void;
 }
 
@@ -33,7 +33,7 @@ export function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const taskData: Partial<Task> = {
+    const taskData: CreateTaskRequest | UpdateTaskRequest = {
       title: title.trim(),
       description: description.trim(),
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,

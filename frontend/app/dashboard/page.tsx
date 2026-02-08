@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Calendar, Flag, Circle, CheckCircle, LogOut } from 'lucide-react';
-import { Task } from '@/lib/types';
+import { Task, CreateTaskRequest, UpdateTaskRequest } from '@/lib/types';
 import { TaskList } from '@/components/tasks/task-list';
 import { TaskForm } from '@/components/tasks/task-form';
 import { Button } from '@/components/ui/button';
@@ -60,39 +60,22 @@ export default function DashboardPage() {
     setIsChatOpen(false);
   };
 
-  const handleTaskSubmit = async (taskData: Partial<Task>) => {
+  const handleTaskSubmit = async (taskData: CreateTaskRequest | UpdateTaskRequest) => {
     try {
       if (editingTask) {
         // Update existing task
-        const response = await apiClient.updateTask(editingTask.id, taskData as any);
-        if (response.success) {
+        const response = await apiClient.updateTask(editingTask.id, taskData as UpdateTaskRequest);
+        if (response.success && response.data) {
           const updatedTasks = tasks.map(t =>
-            t.id === editingTask.id ? {
-              ...t,
-              ...taskData,
-              updatedAt: new Date(response.data?.task.updated_at || new Date()),
-              isCompleted: Boolean(response.data?.task.is_completed)
-            } as Task : t
+            t.id === editingTask.id ? response.data!.task : t
           );
           setTasks(updatedTasks);
         }
       } else {
         // Create new task
-        const response = await apiClient.createTask(taskData as any);
-        if (response.success) {
-          const newTask = {
-            id: String(response.data?.task.id),
-            userId: response.data?.task.user_id,
-            title: response.data?.task.title,
-            description: response.data?.task.description,
-            isCompleted: Boolean(response.data?.task.is_completed),
-            createdAt: new Date(response.data?.task.created_at),
-            updatedAt: new Date(response.data?.task.updated_at),
-            dueDate: response.data?.task.due_date ? new Date(response.data?.task.due_date) : undefined,
-            priority: response.data?.task.priority,
-          } as Task;
-
-          setTasks([newTask, ...tasks]);
+        const response = await apiClient.createTask(taskData as CreateTaskRequest);
+        if (response.success && response.data) {
+          setTasks([response.data.task, ...tasks]);
         }
       }
 
@@ -117,13 +100,9 @@ export default function DashboardPage() {
   const handleTaskToggle = async (taskId: string) => {
     try {
       const response = await apiClient.toggleTaskCompletion(taskId);
-      if (response.success) {
+      if (response.success && response.data) {
         setTasks(tasks.map(task =>
-          task.id === taskId ? {
-            ...task,
-            isCompleted: Boolean(response.data?.task.is_completed),
-            updatedAt: new Date(response.data?.task.updated_at)
-          } : task
+          task.id === taskId ? response.data!.task : task
         ));
       }
     } catch (error) {

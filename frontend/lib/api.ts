@@ -1,7 +1,45 @@
-import { Task, CreateTaskRequest, UpdateTaskRequest, ApiResponse } from './types';
+import { Task, CreateTaskRequest, UpdateTaskRequest, ApiResponse, BackendTask } from './types';
 
 // Update the base URL to match our backend API structure
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
+// Helper function to convert backend task (snake_case) to frontend task (camelCase)
+function mapBackendTaskToFrontend(backendTask: BackendTask): Task {
+  return {
+    id: String(backendTask.id),
+    userId: backendTask.user_id,
+    title: backendTask.title,
+    description: backendTask.description,
+    isCompleted: backendTask.is_completed,
+    createdAt: new Date(backendTask.created_at),
+    updatedAt: new Date(backendTask.updated_at),
+    dueDate: backendTask.due_date ? new Date(backendTask.due_date) : undefined,
+    priority: backendTask.priority,
+  };
+}
+
+// Helper function to convert frontend task request to backend format
+function mapFrontendRequestToBackend(request: CreateTaskRequest | UpdateTaskRequest): any {
+  const backendRequest: any = {};
+
+  if ('title' in request && request.title !== undefined) {
+    backendRequest.title = request.title;
+  }
+  if ('description' in request && request.description !== undefined) {
+    backendRequest.description = request.description;
+  }
+  if ('isCompleted' in request && request.isCompleted !== undefined) {
+    backendRequest.is_completed = request.isCompleted;
+  }
+  if ('dueDate' in request && request.dueDate !== undefined) {
+    backendRequest.due_date = request.dueDate;
+  }
+  if ('priority' in request && request.priority !== undefined) {
+    backendRequest.priority = request.priority;
+  }
+
+  return backendRequest;
+}
 
 class ApiClient {
   private async request<T>(url: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
@@ -87,25 +125,72 @@ class ApiClient {
     const queryString = params.toString();
     const url = `/tasks${queryString ? `?${queryString}` : ''}`;
 
-    return this.request(url);
+    const response = await this.request<{ tasks: BackendTask[]; total: number; limit: number; offset: number }>(url);
+
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          ...response.data,
+          tasks: response.data.tasks.map(mapBackendTaskToFrontend),
+        },
+      };
+    }
+
+    return response as any;
   }
 
   async createTask(task: CreateTaskRequest): Promise<ApiResponse<{ task: Task }>> {
-    return this.request('/tasks', {
+    const backendRequest = mapFrontendRequestToBackend(task);
+    const response = await this.request<{ task: BackendTask }>('/tasks', {
       method: 'POST',
-      body: JSON.stringify(task),
+      body: JSON.stringify(backendRequest),
     });
+
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          task: mapBackendTaskToFrontend(response.data.task),
+        },
+      };
+    }
+
+    return response as any;
   }
 
   async getTask(id: string): Promise<ApiResponse<{ task: Task }>> {
-    return this.request(`/tasks/${id}`);
+    const response = await this.request<{ task: BackendTask }>(`/tasks/${id}`);
+
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          task: mapBackendTaskToFrontend(response.data.task),
+        },
+      };
+    }
+
+    return response as any;
   }
 
   async updateTask(id: string, task: UpdateTaskRequest): Promise<ApiResponse<{ task: Task }>> {
-    return this.request(`/tasks/${id}`, {
+    const backendRequest = mapFrontendRequestToBackend(task);
+    const response = await this.request<{ task: BackendTask }>(`/tasks/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(task),
+      body: JSON.stringify(backendRequest),
     });
+
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          task: mapBackendTaskToFrontend(response.data.task),
+        },
+      };
+    }
+
+    return response as any;
   }
 
   async deleteTask(id: string): Promise<ApiResponse<void>> {
@@ -115,9 +200,20 @@ class ApiClient {
   }
 
   async toggleTaskCompletion(id: string): Promise<ApiResponse<{ task: Task }>> {
-    return this.request(`/tasks/${id}/toggle-status`, {
+    const response = await this.request<{ task: BackendTask }>(`/tasks/${id}/toggle-status`, {
       method: 'PATCH',
     });
+
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: {
+          task: mapBackendTaskToFrontend(response.data.task),
+        },
+      };
+    }
+
+    return response as any;
   }
 
   // Chat methods (require authentication)
