@@ -16,7 +16,6 @@ build/
 # OS generated files
 .DS_Store
 .DS_Store?
-._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
@@ -36,9 +35,7 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # Lock files
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
